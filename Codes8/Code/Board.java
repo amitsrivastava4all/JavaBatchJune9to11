@@ -1,0 +1,162 @@
+package com.bmpl.dave;
+
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.Rectangle;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+
+import javax.swing.ImageIcon;
+import javax.swing.JPanel;
+import javax.swing.Timer;
+
+public class Board extends JPanel implements GameConstants{
+	Image bg;
+	Player player ;
+	Enemy enemies[] = new Enemy[MAX_ENEMY];
+	Camera camera = new Camera();
+	boolean isCtrl = false;
+	public Board(){
+		setSize(GAME_WIDTH,GAME_HEIGHT);
+		
+		//bg = new ImageIcon(Board.class.getResource(BACKGROUND)).getImage();
+		player = new Player();
+		prepareEnemy();
+		setFocusable(true);
+		addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent e){
+				if(e.getKeyCode()==KeyEvent.VK_G){
+					isCtrl=true;
+				}
+				if(e.getKeyCode()==KeyEvent.VK_F && isCtrl ){
+					player.setFireAttack();
+					isCtrl=false;
+				}
+				if(e.getKeyCode()==KeyEvent.VK_SPACE){
+					player.fire();
+				}
+				if(e.getKeyCode()==KeyEvent.VK_RIGHT){
+					//player.setSpeed(25);
+					//player.move();
+					camera.right();
+					//camera.move();
+				}
+				
+				if(e.getKeyCode()==KeyEvent.VK_LEFT){
+					camera.left();
+					camera.move();
+					//System.out.println("Left...");
+					//player.setSpeed(-25);
+					//player.move();
+				}
+				if(e.getKeyCode() == KeyEvent.VK_UP){
+					player.jump();
+				}
+				
+			}
+		});
+		
+		gameLoop();
+		
+		
+	}
+	
+	private void drawBullets(Graphics g){
+		for(Bullet bullet : player.bulletList){
+			if(bullet.isVisible){
+			bullet.drawBullet(g);
+			bullet.move();
+			}
+		}
+	}
+	
+	public boolean isCollision2(Player player, Enemy enemy){
+		Rectangle rect1 = new Rectangle(player.getX(),player.getY(),player.getW(),player.getH());
+		Rectangle rect2 = new Rectangle(enemy.getX(),enemy.getY(),enemy.getW(),enemy.getH());
+		return rect1.intersects(rect2);
+	}
+	
+	public boolean isCollision(Player player , Enemy enemy){
+		int xDistance = Math.abs(player.getX() - enemy.getX());
+		int yDistance = Math.abs(player.getY() - enemy.getY());
+		return xDistance<=(player.getW()-30) && yDistance<=(player.getH()-20);
+	}
+	boolean isGameOver = false;
+	public void checkCollision(){
+		for(Enemy enemy: enemies){
+			//boolean result = isCollision(player, enemy);
+			//if(result == true){
+			if(isCollision(player, enemy)){
+				isGameOver = true;
+				repaint();
+				timer.stop();
+			}
+		}
+	}
+	
+	public void gameOver(Graphics g){
+		g.setColor(Color.RED);
+		g.setFont(new Font("Arial",Font.BOLD,40));
+		g.drawString("Game Over", GAME_WIDTH/2, GAME_HEIGHT/2);
+	}
+	
+	private void prepareEnemy(){
+		Image enemy;
+		int speed = 0;
+		int x = 350;
+		for(int  i= 0; i<MAX_ENEMY; i++){
+			if(i%2==0){
+				enemy = new ImageIcon(Board.class.getResource("spider.gif")).getImage();
+				
+			}
+			else
+			{
+					enemy = new ImageIcon(Board.class.getResource("fire.gif")).getImage();
+				
+			}
+			speed = speed + 5;
+			enemies[i] = new Enemy(x, enemy, speed);
+			x += 350;
+		}
+	}
+	
+	Timer timer;
+	private void gameLoop(){
+		timer  = new Timer(DELAY,(e)->{
+			repaint();
+			
+			player.fall();
+			checkCollision();
+		});
+		timer.start();
+	}
+	
+	@Override
+	public void paintComponent(Graphics g){
+			super.paintComponent(g);
+			camera.drawBG(g);
+			//drawBackGround(g);
+			if(isGameOver){
+				gameOver(g);
+			}
+			player.drawPlayer(g);
+			drawEnemy(g);
+			drawBullets(g);
+			
+	}
+	
+//	private void drawBackGround(Graphics g){
+//		g.drawImage(bg, 0, 0, GAME_WIDTH, GAME_HEIGHT, null);
+//	}
+	
+	private void drawEnemy(Graphics g){
+		for(Enemy enemy : enemies){
+			if(enemy.isVisible){
+			enemy.drawEnemy(g);
+			}
+		}
+	}
+}
